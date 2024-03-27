@@ -10,6 +10,7 @@ import moment from 'moment';
 import DashboardModel from '../DashboardModel/DashboardModel';
 import CountryModel from '../../RegionCountryPage/CountryModel/CountryModel';
 import PageModel from '../../VisitorsPage/PagesModel/PageModel';
+import { BI_SUMMARY_FIELD_KEY } from 'aesirx-lib';
 class DashboardListViewModel {
   dashboardStore = null;
   status = PAGE_STATUS.READY;
@@ -34,6 +35,7 @@ class DashboardListViewModel {
   sortByBrowsers = { 'sort[]': '', 'sort_direction[]': '' };
   sortByEventNameType = { 'sort[]': '', 'sort_direction[]': '' };
   sortBySources = { 'sort[]': '', 'sort_direction[]': '' };
+  sortByAttribute = { 'sort[]': '', 'sort_direction[]': '' };
   constructor(dashboardStore, globalStoreViewModel) {
     makeAutoObservable(this);
     this.dashboardStore = dashboardStore;
@@ -49,6 +51,7 @@ class DashboardListViewModel {
     this.getPages(dataFilter, dateFilter);
     this.getReferer(dataFilter, dateFilter);
     this.getEventsType(dataFilter, dateFilter);
+    this.getAttribute(dataFilter, dateFilter);
   };
 
   getMetrics = (dataFilter, dateFilter) => {
@@ -196,8 +199,8 @@ class DashboardListViewModel {
     dateFilter,
     sortBy = { 'sort[]': 'number_of_page_views', 'sort_direction[]': 'desc' }
   ) => {
-    this.statusTopPageTable = PAGE_STATUS.LOADING;
-    this.sortByPages = sortBy;
+    this.statusTopBrowser = PAGE_STATUS.LOADING;
+    this.sortByAttribute = sortBy;
     this.dataFilterPages = {
       page_size: '8',
       ...this.dataFilterPages,
@@ -209,7 +212,7 @@ class DashboardListViewModel {
     await this.dashboardStore.getAttribute(
       this.dataFilterPages,
       dateRangeFilter,
-      this.callbackOnPagesSuccessHandler,
+      this.callbackOnAttributesSuccessHandler,
       this.callbackOnErrorHandler
     );
   };
@@ -381,13 +384,33 @@ class DashboardListViewModel {
     }
   };
 
-  callbackOnAttributesTypeSuccessHandler = (data) => {
+  callbackOnEventNameTypeSuccessHandler = (data) => {
     if (data) {
       if (data?.message !== 'canceled') {
-        this.dataAttributesType = data?.list;
+        this.eventNameTypeDataType = data?.list;
         const transformData = new DashboardModel(data.list, this.globalStoreViewModel);
-        this.attributeTypeTableData = {
+        this.eventNameTypeTableData = {
           list: transformData.toEventsTypeTableTop(),
+          pagination: data.pagination,
+        };
+        this.statusTopBrowser = PAGE_STATUS.READY;
+      }
+    } else {
+      this.statusTopBrowser = PAGE_STATUS.ERROR;
+      this.data = [];
+    }
+  };
+
+  callbackOnAttributesSuccessHandler = (data) => {
+    if (data) {
+      if (data?.message !== 'canceled') {
+        const transformFormat = data?.list?.map((item, index) => {
+          return item.values[0];
+        });
+        this.dataAttributesType = transformFormat;
+        const formatData = new DashboardModel(transformFormat, this.globalStoreViewModel);
+        this.attributeTypeTableData = {
+          list: formatData.toAttributeTableTop(),
           pagination: data.pagination,
         };
         this.statusTopBrowser = PAGE_STATUS.READY;
